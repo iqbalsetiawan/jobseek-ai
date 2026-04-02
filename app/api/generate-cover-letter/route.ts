@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFParse } from 'pdf-parse';
+import pdfParse from 'pdf-parse';
 
 const BANNED_PHRASES = [
   'I am writing to express my interest',
@@ -24,73 +24,66 @@ function cleanText(text: string): string {
     .slice(0, 4000);
 }
 
-function buildPrompt(params: {
+function buildMessages(params: {
   cvText: string;
   role: string;
   company: string;
   jobDescription: string;
   requirements: string;
   tone: string;
-}): string {
+}): { role: string; content: string }[] {
   const { cvText, role, company, jobDescription, requirements, tone } = params;
 
-  const toneGuide = {
-    Professional:
-      'polished and confident, warm but structured — like a senior professional who knows their worth without being boastful',
-    Casual:
-      'conversational and approachable, like writing to someone you met at a networking event — relaxed cadence, first-name energy, still sharp',
-    Confident:
-      'assertive and forward-looking, use strong active verbs, make direct claims backed by evidence from the CV — no hedging',
-  }[tone] ?? 'professional and human';
+  const toneGuide =
+    {
+      Professional:
+        'polished and confident, warm but structured — like a senior professional who knows their worth without being boastful',
+      Casual:
+        'conversational and approachable, like writing to someone you met at a networking event — relaxed cadence, first-name energy, still sharp',
+      Confident:
+        'assertive and forward-looking, use strong active verbs, make direct claims backed by evidence from the CV — no hedging',
+    }[tone] ?? 'professional and human';
 
   const bannedList = BANNED_PHRASES.map((p) => `- "${p}"`).join('\n');
 
-  return `You are an expert cover letter writer who specializes in making letters sound authentically human — not templated, not AI-generated.
+  const systemPrompt = `You are an expert cover letter writer. Your letters sound authentically human — not templated, not AI-generated. You write in first person, naturally, like a real candidate who took time to think about the role.
 
-Your task: Write a cover letter for the following candidate applying for a role. The letter must read like it was written by a real, thoughtful person who did their homework.
-
----
-CANDIDATE CV:
-${cvText}
----
-ROLE: ${role}
-COMPANY: ${company}
----
-JOB DESCRIPTION:
-${jobDescription}
----
-REQUIREMENTS:
-${requirements}
----
-TONE: ${toneGuide}
-
----
-STRUCTURE (follow this exactly, 4 paragraphs):
-
-1. OPENING — Start with a specific, compelling hook that ties the candidate's background directly to this company or role. Show that you know something specific about this company or why this role matters. Never start with "I am writing to..." or any generic opener. Make the reader want to keep going.
-
-2. BODY PARAGRAPH 1 — Highlight the most relevant experience from the CV using concrete examples. If there are numbers, use them (e.g. "built a system that handled 50k requests/day", "reduced build time by 40%"). Do not simply repeat the CV — tell a brief story that shows impact.
-
-3. BODY PARAGRAPH 2 — Match specific skills from the CV to the job requirements. Show you understand what the company actually needs. Reference the job description naturally — don't list requirements robotically.
-
-4. CLOSING — Restate fit briefly and confidently. Express genuine interest without desperation. End with a clear, natural call to action (e.g. "I'd love to talk through how I can contribute to [specific thing at the company]"). Sign off naturally.
-
----
 STRICT RULES:
-- Write in first person
+- Output ONLY the cover letter text. No preamble. No "Here is your cover letter:". No closing notes.
 - Do NOT use any of these phrases:
 ${bannedList}
-- Do NOT use hollow adjectives like "dynamic", "synergistic", "results-driven", "forward-thinking"
+- Do NOT use hollow adjectives: "dynamic", "synergistic", "results-driven", "forward-thinking"
 - Do NOT start sentences with "I" more than twice in a row
-- Vary sentence length — mix short punchy sentences with longer ones
-- One paragraph should include at least one specific, quantifiable achievement from the CV
 - The opening sentence must NOT start with "I"
 - No placeholder text like [Your Name] or [Date]
-- No preamble like "Here is your cover letter:" — output ONLY the letter
-- Maximum 5 paragraphs, minimum 3
-- Sound like a real human wrote this after thinking carefully about the role
+- Vary sentence length — mix short punchy sentences with longer ones
+- Minimum 3 paragraphs, maximum 5 paragraphs
+- Include at least one specific, quantifiable achievement from the CV if one exists`;
 
-[INST] Write the cover letter now. Output only the letter text. [/INST]`;
+  const userPrompt = `Write a cover letter. Tone: ${toneGuide}
+
+CANDIDATE CV:
+${cvText}
+
+ROLE: ${role}
+COMPANY: ${company}
+
+JOB DESCRIPTION:
+${jobDescription}
+
+REQUIREMENTS:
+${requirements}
+
+Follow this structure:
+1. OPENING — Specific hook tied to this company/role. Show you know something about this company. Never use a generic opener.
+2. BODY 1 — Most relevant experience from the CV with concrete examples and numbers where possible.
+3. BODY 2 — Match skills from the CV to the job requirements naturally.
+4. CLOSING — Confident restatement of fit + clear call to action.`;
+
+  return [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ];
 }
 
 export async function POST(request: NextRequest) {
@@ -114,12 +107,11 @@ export async function POST(request: NextRequest) {
     let cvText = 'No CV provided.';
     if (file && file.size > 0) {
       const arrayBuffer = await file.arrayBuffer();
-      const parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
-      const result = await parser.getText();
-      cvText = cleanText(result.text);
+      const parsed = await pdfParse(Buffer.from(arrayBuffer));
+      cvText = cleanText(parsed.text);
     }
 
-    const prompt = buildPrompt({
+    const messages = buildMessages({
       cvText,
       role,
       company,
@@ -129,8 +121,7 @@ export async function POST(request: NextRequest) {
     });
 
     const hfModel =
-      process.env.HUGGINGFACE_MODEL ??
-      'mistralai/Mixtral-8x7B-Instruct-v0.1';
+      process.env.HUGGINGFACE_MODEL ?? 'Qwen/Qwen2.5-7B-Instruct';
     const hfToken = process.env.HUGGINGFACE_API_TOKEN;
 
     if (!hfToken || hfToken === 'your_token_here') {
@@ -140,8 +131,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // HuggingFace migrated to router.huggingface.co with OpenAI-compatible chat completions
     const hfResponse = await fetch(
-      `https://api-inference.huggingface.co/models/${hfModel}`,
+      'https://router.huggingface.co/v1/chat/completions',
       {
         method: 'POST',
         headers: {
@@ -149,21 +141,18 @@ export async function POST(request: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          inputs: prompt,
-          parameters: {
-            max_new_tokens: 800,
-            temperature: 0.7,
-            top_p: 0.9,
-            do_sample: true,
-            return_full_text: false,
-          },
+          model: hfModel,
+          messages,
+          max_tokens: 900,
+          temperature: 0.75,
+          top_p: 0.9,
         }),
       },
     );
 
     if (!hfResponse.ok) {
       const errorText = await hfResponse.text();
-      console.error('HuggingFace API error:', errorText);
+      console.error('HuggingFace API error:', hfResponse.status, errorText);
       return NextResponse.json(
         { error: 'AI generation failed. Please try again.' },
         { status: 502 },
@@ -171,23 +160,15 @@ export async function POST(request: NextRequest) {
     }
 
     const hfData = await hfResponse.json();
+    const coverLetter: string =
+      hfData?.choices?.[0]?.message?.content?.trim() ?? '';
 
-    let coverLetter: string = '';
-    if (Array.isArray(hfData) && hfData[0]?.generated_text) {
-      coverLetter = hfData[0].generated_text.trim();
-    } else if (typeof hfData?.generated_text === 'string') {
-      coverLetter = hfData.generated_text.trim();
-    } else {
+    if (!coverLetter) {
+      console.error('Unexpected HF response shape:', JSON.stringify(hfData));
       return NextResponse.json(
         { error: 'Unexpected response from AI model.' },
         { status: 502 },
       );
-    }
-
-    // Strip any prompt leakage — only keep content after [/INST] if present
-    const instIdx = coverLetter.lastIndexOf('[/INST]');
-    if (instIdx !== -1) {
-      coverLetter = coverLetter.slice(instIdx + '[/INST]'.length).trim();
     }
 
     return NextResponse.json({ coverLetter });
