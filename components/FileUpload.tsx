@@ -40,18 +40,20 @@ export function FileUpload({ value, onChange, error }: FileUploadProps) {
 
   if (value) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
-        <FileText className="h-5 w-5 shrink-0 text-muted-foreground" />
-        <div className="flex-1 min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">
+      <div className="border-border bg-muted/40 flex items-center gap-3 rounded-lg border px-4 py-3">
+        <FileText className="text-muted-foreground h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground truncate text-sm font-medium">
             {value.name}
           </p>
-          <p className="text-xs text-muted-foreground">{formatBytes(value.size)}</p>
+          <p className="text-muted-foreground text-xs">
+            {formatBytes(value.size)}
+          </p>
         </div>
         <button
           type="button"
           onClick={() => onChange(null)}
-          className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-1 transition-colors"
           aria-label="Remove file"
         >
           <X className="h-4 w-4" />
@@ -65,7 +67,7 @@ export function FileUpload({ value, onChange, error }: FileUploadProps) {
       <div
         {...getRootProps()}
         className={cn(
-          'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 cursor-pointer transition-colors',
+          'flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 transition-colors',
           isDragActive
             ? 'border-foreground bg-muted/50'
             : 'border-border bg-muted/20 hover:border-muted-foreground/50 hover:bg-muted/30',
@@ -80,16 +82,16 @@ export function FileUpload({ value, onChange, error }: FileUploadProps) {
           )}
         />
         <div className="text-center">
-          <p className="text-sm font-medium text-foreground">
-            {isDragActive ? 'Drop your CV here' : 'Upload your CV'}
+          <p className="text-foreground text-sm font-medium">
+            {isDragActive ? 'Drop file here' : 'Upload PDF'}
           </p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            PDF only — max 2MB
+          <p className="text-muted-foreground mt-0.5 text-xs">
+            CV or resume · PDF only · max 2 MB
           </p>
         </div>
       </div>
       {displayError && (
-        <p className="text-xs text-destructive">{displayError}</p>
+        <p className="text-destructive text-xs">{displayError}</p>
       )}
     </div>
   );

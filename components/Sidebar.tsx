@@ -1,79 +1,72 @@
 'use client';
 
-import { FileText, Sparkles, FileEdit } from 'lucide-react';
+import { Sparkles, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 
 interface SidebarProps {
-  activeTab: 'cover-letter' | 'improve-cv';
-  onTabChange: (tab: 'cover-letter' | 'improve-cv') => void;
+  className?: string;
+  onDrawerClose?: () => void;
 }
 
-const navItems = [
-  {
-    id: 'cover-letter' as const,
-    label: 'Cover Letter',
-    icon: FileText,
-  },
-  {
-    id: 'improve-cv' as const,
-    label: 'Improve My CV',
-    icon: FileEdit,
-    disabled: true,
-  },
-];
+export function Sidebar({ className, onDrawerClose }: SidebarProps) {
+  const isDrawer = Boolean(onDrawerClose);
 
-export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   return (
-    <aside className="flex w-60 shrink-0 flex-col bg-white dark:bg-gray-900 border border-border rounded-xl shadow-sm overflow-hidden">
-      {/* Brand */}
-      <div className="flex items-center gap-2 px-4 py-5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground">
-          <Sparkles className="h-4 w-4 text-background" />
+    <aside
+      className={cn(
+        'border-border bg-background flex h-full flex-col overflow-hidden rounded-xl border shadow-sm',
+        isDrawer
+          ? 'w-full max-w-none min-w-0 rounded-none border-0 shadow-none'
+          : 'w-full max-w-[240px] min-w-[240px]',
+        className,
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center gap-2',
+          isDrawer
+            ? 'border-border justify-between border-b px-3 py-3.5'
+            : 'px-4 py-5',
+        )}
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <div className="bg-foreground flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
+              <Sparkles className="text-background h-4 w-4" />
+            </div>
+            <span className="text-foreground truncate text-sm font-semibold tracking-tight">
+              JobSeekAI
+            </span>
+          </div>
+          <p className="text-muted-foreground pl-9 text-[11px]">
+            Cover letters
+          </p>
         </div>
-        <span className="text-sm font-semibold tracking-tight text-foreground">
-          jobseekAI
-        </span>
+        {onDrawerClose ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 self-start"
+            onClick={onDrawerClose}
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        ) : null}
       </div>
 
-      <Separator />
+      {!isDrawer ? <Separator /> : null}
 
-      {/* Nav */}
-      <nav className="flex-1 px-2 py-4 space-y-1">
-        <p className="px-2 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          Tools
-        </p>
-        {navItems.map(({ id, label, icon: Icon, disabled }) => (
-          <button
-            key={id}
-            onClick={() => !disabled && onTabChange(id)}
-            disabled={disabled}
-            className={cn(
-              'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              activeTab === id
-                ? 'bg-gray-100 dark:bg-gray-800 text-foreground'
-                : 'text-muted-foreground hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-foreground',
-              disabled && 'cursor-not-allowed opacity-40',
-            )}
-          >
-            <Icon className="h-4 w-4 shrink-0" />
-            {label}
-            {disabled && (
-              <span className="ml-auto text-[10px] font-medium text-muted-foreground">
-                Soon
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
-
-      <Separator />
-
-      {/* Footer */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <span className="text-[11px] text-muted-foreground">Theme</span>
-        <ThemeToggle />
+      <div className="flex flex-1 flex-col justify-end">
+        <Separator />
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-muted-foreground text-[11px]">Appearance</span>
+          <ThemeToggle />
+        </div>
       </div>
     </aside>
   );

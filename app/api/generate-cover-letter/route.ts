@@ -37,27 +37,30 @@ function buildMessages(params: {
   const toneGuide =
     {
       Professional:
-        'polished and confident, warm but structured — like a senior professional who knows their worth without being boastful',
+        'polished and structured, warm but formal, confident without sounding stiff',
       Casual:
-        'conversational and approachable, like writing to someone you met at a networking event — relaxed cadence, first-name energy, still sharp',
+        'conversational and approachable, relaxed cadence, warm and direct, still professional',
       Confident:
-        'assertive and forward-looking, use strong active verbs, make direct claims backed by evidence from the CV — no hedging',
+        'assertive and forward-looking, strong active verbs, direct claims backed by evidence from the CV, no hedging',
     }[tone] ?? 'professional and human';
 
   const bannedList = BANNED_PHRASES.map((p) => `- "${p}"`).join('\n');
 
-  const systemPrompt = `You are an expert cover letter writer. Your letters sound authentically human — not templated, not AI-generated. You write in first person, naturally, like a real candidate who took time to think about the role.
+  const systemPrompt = `You are an expert cover letter writer. Your letters sound authentically human, not templated or AI-generated. You write in first person, naturally, like a real candidate who took time to think about the role.
 
 STRICT RULES:
 - Output ONLY the cover letter text. No preamble. No "Here is your cover letter:". No closing notes.
+- FORMAT: Start with a one-line salutation on its own line (e.g. "Dear Hiring Manager," or "Dear ${company} Team,"). Use a real greeting, never "To whom it may concern".
+- FORMAT: In the final body paragraph before the sign-off, include a short invitation to connect further. You MUST include these exact placeholder strings (capital letters, square brackets) so the candidate can replace them: [YOUR LINKEDIN] and [YOUR EMAIL]. Work them into one natural sentence (e.g. mentioning LinkedIn and email). Do not invent real URLs or addresses.
+- FORMAT: After the body paragraphs, end with a professional sign-off on its own line (e.g. "Sincerely,", "Warmest regards,", "Best regards,", "Kind regards,"). Then one blank line for the candidate to add their name. Do NOT use any other bracket placeholders (no [Your Name], [Date], etc.) except [YOUR LINKEDIN] and [YOUR EMAIL] as required above.
+- PUNCTUATION: Do not use em dashes, en dashes, or double hyphens (--) in the letter. Do not use a hyphen with spaces on each side as a pause between phrases. For breaks or asides, use commas, periods, or parentheses. Hyphens inside normal compound words (e.g. full-time, co-founder) are fine when natural.
 - Do NOT use any of these phrases:
 ${bannedList}
 - Do NOT use hollow adjectives: "dynamic", "synergistic", "results-driven", "forward-thinking"
 - Do NOT start sentences with "I" more than twice in a row
-- The opening sentence must NOT start with "I"
-- No placeholder text like [Your Name] or [Date]
-- Vary sentence length — mix short punchy sentences with longer ones
-- Minimum 3 paragraphs, maximum 5 paragraphs
+- The first sentence of the opening body paragraph (the paragraph right after the salutation) must NOT start with "I"
+- Vary sentence length: mix short punchy sentences with longer ones
+- Minimum 3 body paragraphs (not counting salutation or sign-off lines), maximum 5 body paragraphs
 - Include at least one specific, quantifiable achievement from the CV if one exists`;
 
   const userPrompt = `Write a cover letter. Tone: ${toneGuide}
@@ -75,10 +78,12 @@ REQUIREMENTS:
 ${requirements}
 
 Follow this structure:
-1. OPENING — Specific hook tied to this company/role. Show you know something about this company. Never use a generic opener.
-2. BODY 1 — Most relevant experience from the CV with concrete examples and numbers where possible.
-3. BODY 2 — Match skills from the CV to the job requirements naturally.
-4. CLOSING — Confident restatement of fit + clear call to action.`;
+0. SALUTATION: One line only, comma at the end (e.g. Dear Hiring Manager,).
+1. OPENING: Specific hook tied to this company/role. Show you know something about this company. Never use a generic opener.
+2. BODY 1: Most relevant experience from the CV with concrete examples and numbers where possible.
+3. BODY 2: Match skills from the CV to the job requirements naturally.
+4. CLOSING: Confident restatement of fit, clear call to action, plus one sentence inviting follow-up that includes exactly these tokens: [YOUR LINKEDIN] and [YOUR EMAIL].
+5. SIGN-OFF: One line: Sincerely, or Warmest regards, or Best regards, or Kind regards, (pick one that fits the tone). Then one blank line, nothing after that.`;
 
   return [
     { role: 'system', content: systemPrompt },
@@ -120,8 +125,7 @@ export async function POST(request: NextRequest) {
       tone,
     });
 
-    const hfModel =
-      process.env.HUGGINGFACE_MODEL ?? 'Qwen/Qwen2.5-7B-Instruct';
+    const hfModel = process.env.HUGGINGFACE_MODEL ?? 'Qwen/Qwen2.5-7B-Instruct';
     const hfToken = process.env.HUGGINGFACE_API_TOKEN;
 
     if (!hfToken || hfToken === 'your_token_here') {
@@ -143,7 +147,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify({
           model: hfModel,
           messages,
-          max_tokens: 900,
+          max_tokens: 1000,
           temperature: 0.75,
           top_p: 0.9,
         }),

@@ -1,7 +1,8 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans } from 'next/font/google';
-import { Toaster } from 'sonner';
 import { Providers } from '@/components/Providers';
+import { ThemedToaster } from '@/components/ThemedToaster';
+import { getSiteUrl } from '@/lib/site';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -10,10 +11,49 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
+const siteUrl = getSiteUrl();
+const title = {
+  default: 'JobSeekAI',
+  template: '%s · JobSeekAI',
+};
+const description =
+  'Draft a thoughtful cover letter for any application — clear wording, your own tone, no generic filler.';
+
 export const metadata: Metadata = {
-  title: 'jobseekAI — Cover Letter Generator',
-  description:
-    'Generate natural, human-like cover letters tailored to your CV and the job you want.',
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  applicationName: 'JobSeekAI',
+  keywords: ['cover letter', 'job application', 'resume', 'CV', 'careers'],
+  authors: [{ name: 'JobSeekAI', url: siteUrl }],
+  creator: 'JobSeekAI',
+  icons: {
+    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    url: '/',
+    siteName: 'JobSeekAI',
+    title: title.default,
+    description,
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: title.default,
+    description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#fafafa' },
+    { media: '(prefers-color-scheme: dark)', color: '#0a0a0a' },
+  ],
 };
 
 export default function RootLayout({
@@ -27,10 +67,13 @@ export default function RootLayout({
       className={`${plusJakartaSans.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full">
+      <body
+        className="bg-background text-foreground min-h-full"
+        suppressHydrationWarning
+      >
         <Providers>
           {children}
-          <Toaster richColors position="top-right" />
+          <ThemedToaster />
         </Providers>
       </body>
     </html>

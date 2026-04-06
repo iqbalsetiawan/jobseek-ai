@@ -28,7 +28,9 @@ const schema = z.object({
     .optional(),
   role: z.string().min(1, 'Role is required.'),
   company: z.string().min(1, 'Company is required.'),
-  jobDescription: z.string().min(20, 'Please provide a job description (min 20 characters).'),
+  jobDescription: z
+    .string()
+    .min(20, 'Please provide a job description (min 20 characters).'),
   requirements: z.string().optional(),
   tone: z.enum(['Professional', 'Casual', 'Confident']),
 });
@@ -101,12 +103,16 @@ export function CoverLetterForm({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form
+      id="cover-letter-form"
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-5"
+    >
       {/* CV Upload */}
       <div className="space-y-1.5">
-        <Label>Your CV</Label>
-        <p className="text-xs text-muted-foreground">
-          We&apos;ll use this to write a cover letter based on your real experience.
+        <Label>Your CV or resume</Label>
+        <p className="text-muted-foreground text-xs">
+          We read what you&apos;ve done so the letter matches your background.
         </p>
         <FileUpload
           value={(fileValue as File) ?? null}
@@ -117,59 +123,53 @@ export function CoverLetterForm({
 
       {/* Role */}
       <div className="space-y-1.5">
-        <Label htmlFor="role">
-          What role are you applying for?
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          The exact job title from the listing works best.
+        <Label htmlFor="role">Position or job title</Label>
+        <p className="text-muted-foreground text-xs">
+          Use the title from the posting when you can.
         </p>
         <Input
           id="role"
-          placeholder="e.g. Frontend Engineer"
+          placeholder="e.g. Account Manager, Software Engineer, etc."
           {...register('role')}
           aria-invalid={!!errors.role}
         />
         {errors.role && (
-          <p className="text-xs text-destructive">{errors.role.message}</p>
+          <p className="text-destructive text-xs">{errors.role.message}</p>
         )}
       </div>
 
       {/* Company */}
       <div className="space-y-1.5">
-        <Label htmlFor="company">
-          Which company is this for?
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          We&apos;ll personalise the letter specifically for this company.
+        <Label htmlFor="company">Employer or organisation</Label>
+        <p className="text-muted-foreground text-xs">
+          Helps tailor the opening and why you want to join them.
         </p>
         <Input
           id="company"
-          placeholder="e.g. Stripe"
+          placeholder="e.g. Google, Meta, etc."
           {...register('company')}
           aria-invalid={!!errors.company}
         />
         {errors.company && (
-          <p className="text-xs text-destructive">{errors.company.message}</p>
+          <p className="text-destructive text-xs">{errors.company.message}</p>
         )}
       </div>
 
       {/* Job Description */}
       <div className="space-y-1.5">
-        <Label htmlFor="jobDescription">
-          Paste the job description
-        </Label>
-        <p className="text-xs text-muted-foreground">
-          The more detail you include, the better the result.
+        <Label htmlFor="jobDescription">Job description</Label>
+        <p className="text-muted-foreground text-xs">
+          Copy the main description from the advert or careers page.
         </p>
         <Textarea
           id="jobDescription"
-          placeholder="Paste the full job description here..."
+          placeholder="Paste the role overview, responsibilities, and context here..."
           rows={5}
           {...register('jobDescription')}
           aria-invalid={!!errors.jobDescription}
         />
         {errors.jobDescription && (
-          <p className="text-xs text-destructive">
+          <p className="text-destructive text-xs">
             {errors.jobDescription.message}
           </p>
         )}
@@ -178,14 +178,14 @@ export function CoverLetterForm({
       {/* Requirements */}
       <div className="space-y-1.5">
         <Label htmlFor="requirements">
-          What are they looking for?
+          Must-haves and nice-to-haves (optional)
         </Label>
-        <p className="text-xs text-muted-foreground">
-          We&apos;ll match your experience to what they actually need.
+        <p className="text-muted-foreground text-xs">
+          Skills, experience level, certifications, or soft skills they mention.
         </p>
         <Textarea
           id="requirements"
-          placeholder="e.g. 3+ years React, strong TypeScript, team leadership..."
+          placeholder="e.g. client-facing experience, budget ownership, leadership experience, language requirements, etc."
           rows={3}
           {...register('requirements')}
         />
@@ -193,14 +193,11 @@ export function CoverLetterForm({
 
       {/* Tone */}
       <div className="space-y-1.5">
-        <Label>How should the letter sound?</Label>
-        <p className="text-xs text-muted-foreground">
-          Pick the tone that fits you and the company culture.
+        <Label>Overall tone</Label>
+        <p className="text-muted-foreground text-xs">
+          Pick what feels closest to you and to how the employer writes.
         </p>
-        <Select
-          value={toneField.value}
-          onValueChange={toneField.onChange}
-        >
+        <Select value={toneField.value} onValueChange={toneField.onChange}>
           <SelectTrigger>
             <SelectValue placeholder="Select tone" />
           </SelectTrigger>
@@ -216,7 +213,7 @@ export function CoverLetterForm({
       <Button
         type="submit"
         disabled={isGenerating}
-        className="w-full bg-foreground text-background hover:bg-foreground/90"
+        className="bg-foreground text-background hover:bg-foreground/90 w-full"
       >
         {isGenerating ? (
           <>
@@ -224,7 +221,7 @@ export function CoverLetterForm({
             Generating...
           </>
         ) : (
-          'Write My Cover Letter'
+          'Generate cover letter'
         )}
       </Button>
     </form>

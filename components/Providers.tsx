@@ -8,7 +8,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       attribute="class"
       defaultTheme="system"
       enableSystem
-      storageKey="jobseekAI-theme"
+      storageKey="JobSeekAI-theme"
     >
       {children}
     </ThemeProvider>

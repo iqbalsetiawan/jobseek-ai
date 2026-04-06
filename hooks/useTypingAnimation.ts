@@ -15,47 +15,59 @@ interface UseTypingAnimationResult {
 
 export function useTypingAnimation({
   text,
-  speed = 25,
+  speed = 12,
   enabled = true,
 }: UseTypingAnimationOptions): UseTypingAnimationResult {
-  const [displayedText, setDisplayedText] = useState('');
+  const staticMode = !text || !enabled;
+  const [animText, setAnimText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const indexRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const genRef = useRef(0);
 
   useEffect(() => {
-    if (!text || !enabled) {
-      setDisplayedText(text);
-      setIsTyping(false);
-      return;
-    }
+    if (staticMode) return;
 
-    setDisplayedText('');
-    indexRef.current = 0;
-    setIsTyping(true);
+    const myGen = ++genRef.current;
 
-    function typeNext() {
-      if (indexRef.current < text.length) {
-        const charsToAdd = Math.floor(Math.random() * 2) + 1;
-        const nextIndex = Math.min(indexRef.current + charsToAdd, text.length);
-        setDisplayedText(text.slice(0, nextIndex));
-        indexRef.current = nextIndex;
+    queueMicrotask(() => {
+      if (myGen !== genRef.current) return;
+      setAnimText('');
+      indexRef.current = 0;
+      setIsTyping(true);
 
-        const jitter = Math.floor(Math.random() * 20);
-        timeoutRef.current = setTimeout(typeNext, speed + jitter);
-      } else {
-        setIsTyping(false);
+      function typeNext() {
+        if (myGen !== genRef.current) return;
+        if (indexRef.current < text.length) {
+          const charsToAdd = Math.floor(Math.random() * 2) + 1;
+          const nextIndex = Math.min(
+            indexRef.current + charsToAdd,
+            text.length,
+          );
+          setAnimText(text.slice(0, nextIndex));
+          indexRef.current = nextIndex;
+
+          const jitter = Math.floor(Math.random() * 6);
+          timeoutRef.current = setTimeout(typeNext, speed + jitter);
+        } else {
+          setIsTyping(false);
+        }
       }
-    }
 
-    timeoutRef.current = setTimeout(typeNext, speed);
+      timeoutRef.current = setTimeout(typeNext, speed);
+    });
 
     return () => {
+      genRef.current += 1;
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [text, speed, enabled]);
+  }, [staticMode, text, speed, enabled]);
 
-  return { displayedText, isTyping };
+  if (staticMode) {
+    return { displayedText: text, isTyping: false };
+  }
+
+  return { displayedText: animText, isTyping };
 }
