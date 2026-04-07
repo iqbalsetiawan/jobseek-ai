@@ -6,21 +6,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import { useTypingAnimation } from '@/hooks/useTypingAnimation';
 
 interface PreviewPanelProps {
   coverLetter: string;
+  /** Increments only when a new letter is generated (not when the user edits). */
+  letterRunKey: number;
   isGenerating: boolean;
   onRegenerate: () => void;
+  onCoverLetterChange: (value: string) => void;
 }
 
 export function PreviewPanel({
   coverLetter,
+  letterRunKey,
   isGenerating,
   onRegenerate,
+  onCoverLetterChange,
 }: PreviewPanelProps) {
   const { displayedText, isTyping } = useTypingAnimation({
     text: coverLetter,
+    runKey: letterRunKey,
     speed: 10,
     enabled: !!coverLetter,
   });
@@ -89,17 +96,18 @@ export function PreviewPanel({
         ) : hasContent ? (
           <AnimatePresence mode="wait">
             <motion.div
-              key={coverLetter.slice(0, 20)}
+              key={letterRunKey}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="relative"
             >
-              <pre className="text-foreground font-sans text-sm leading-relaxed whitespace-pre-wrap">
-                {displayedText}
-                {isTyping && (
-                  <span className="bg-foreground ml-0.5 inline-block h-4 w-0.5 translate-y-0.5 animate-pulse" />
-                )}
-              </pre>
+              <Textarea
+                aria-label="Cover letter draft"
+                readOnly={isTyping}
+                value={isTyping ? displayedText : coverLetter}
+                onChange={(e) => onCoverLetterChange(e.target.value)}
+                className="text-foreground min-h-[min(50vh,28rem)] w-full resize-y border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none focus-visible:ring-0 read-only:cursor-default"
+              />
             </motion.div>
           </AnimatePresence>
         ) : (

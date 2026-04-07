@@ -24,6 +24,21 @@ function cleanText(text: string): string {
     .slice(0, 4000);
 }
 
+/** Turn buzzword-style hyphen stacks into plain words (e.g. real-time → real time). */
+function normalizeHyphenBuzzwords(letter: string): string {
+  let s = letter.replace(/\u2013|\u2014/g, ' ');
+  s = s.replace(/--+/g, ' ');
+  let prev = '';
+  while (s !== prev) {
+    prev = s;
+    s = s.replace(/\b([A-Za-z]+)-([A-Za-z]+)\b/g, '$1 $2');
+  }
+  return s
+    .split('\n')
+    .map((line) => line.replace(/ {2,}/g, ' ').trimEnd())
+    .join('\n');
+}
+
 function buildMessages(params: {
   cvText: string;
   role: string;
@@ -53,7 +68,8 @@ STRICT RULES:
 - FORMAT: Start with a one-line salutation on its own line (e.g. "Dear Hiring Manager," or "Dear ${company} Team,"). Use a real greeting, never "To whom it may concern".
 - FORMAT: In the final body paragraph before the sign-off, include a short invitation to connect further. You MUST include these exact placeholder strings (capital letters, square brackets) so the candidate can replace them: [YOUR LINKEDIN] and [YOUR EMAIL]. Work them into one natural sentence (e.g. mentioning LinkedIn and email). Do not invent real URLs or addresses.
 - FORMAT: After the body paragraphs, end with a professional sign-off on its own line (e.g. "Sincerely,", "Warmest regards,", "Best regards,", "Kind regards,"). Then one blank line for the candidate to add their name. Do NOT use any other bracket placeholders (no [Your Name], [Date], etc.) except [YOUR LINKEDIN] and [YOUR EMAIL] as required above.
-- PUNCTUATION: Do not use em dashes, en dashes, or double hyphens (--) in the letter. Do not use a hyphen with spaces on each side as a pause between phrases. For breaks or asides, use commas, periods, or parentheses. Hyphens inside normal compound words (e.g. full-time, co-founder) are fine when natural.
+- PUNCTUATION: Do not use em dashes, en dashes, or double hyphens (--) in the letter. Do not use a hyphen with spaces on each side as a pause between phrases. For breaks or asides, use commas, periods, or parentheses.
+- NO HYPHENATED BUZZWORD PAIRS: Never write forms like "real-time", "user-friendly", "high-quality", "end-to-end", "best-in-class", "world-class", or similar adjective stacks joined by hyphens. Use a space between words ("real time", "user friendly"), one word, or rephrase naturally (e.g. "strong quality" instead of "high-quality").
 - Do NOT use any of these phrases:
 ${bannedList}
 - Do NOT use hollow adjectives: "dynamic", "synergistic", "results-driven", "forward-thinking"
@@ -164,8 +180,9 @@ export async function POST(request: NextRequest) {
     }
 
     const hfData = await hfResponse.json();
-    const coverLetter: string =
+    const rawLetter: string =
       hfData?.choices?.[0]?.message?.content?.trim() ?? '';
+    const coverLetter = normalizeHyphenBuzzwords(rawLetter).trim();
 
     if (!coverLetter) {
       console.error('Unexpected HF response shape:', JSON.stringify(hfData));

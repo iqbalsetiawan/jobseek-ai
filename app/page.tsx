@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Home() {
   const [coverLetter, setCoverLetter] = useState('');
+  const [letterRunKey, setLetterRunKey] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -85,7 +86,10 @@ export default function Home() {
                 </p>
               </div>
               <CoverLetterForm
-                onGenerate={setCoverLetter}
+                onGenerate={(letter) => {
+                  setCoverLetter(letter);
+                  setLetterRunKey((k) => k + 1);
+                }}
                 onGenerating={setIsGenerating}
                 isGenerating={isGenerating}
               />
@@ -96,8 +100,10 @@ export default function Home() {
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
               <PreviewPanel
                 coverLetter={coverLetter}
+                letterRunKey={letterRunKey}
                 isGenerating={isGenerating}
                 onRegenerate={handleRegenerate}
+                onCoverLetterChange={setCoverLetter}
               />
             </div>
           </div>

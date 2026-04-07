@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 
 interface UseTypingAnimationOptions {
   text: string;
+  /** Bump only when starting a new AI generation so edits do not restart the animation. */
+  runKey: number | string;
   speed?: number;
   enabled?: boolean;
 }
@@ -15,6 +17,7 @@ interface UseTypingAnimationResult {
 
 export function useTypingAnimation({
   text,
+  runKey,
   speed = 12,
   enabled = true,
 }: UseTypingAnimationOptions): UseTypingAnimationResult {
@@ -24,10 +27,13 @@ export function useTypingAnimation({
   const indexRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const genRef = useRef(0);
+  const textRef = useRef(text);
+  textRef.current = text;
 
   useEffect(() => {
     if (staticMode) return;
 
+    const targetText = textRef.current;
     const myGen = ++genRef.current;
 
     queueMicrotask(() => {
@@ -38,13 +44,13 @@ export function useTypingAnimation({
 
       function typeNext() {
         if (myGen !== genRef.current) return;
-        if (indexRef.current < text.length) {
+        if (indexRef.current < targetText.length) {
           const charsToAdd = Math.floor(Math.random() * 2) + 1;
           const nextIndex = Math.min(
             indexRef.current + charsToAdd,
-            text.length,
+            targetText.length,
           );
-          setAnimText(text.slice(0, nextIndex));
+          setAnimText(targetText.slice(0, nextIndex));
           indexRef.current = nextIndex;
 
           const jitter = Math.floor(Math.random() * 6);
@@ -63,7 +69,7 @@ export function useTypingAnimation({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [staticMode, text, speed, enabled]);
+  }, [runKey, staticMode, speed, enabled]);
 
   if (staticMode) {
     return { displayedText: text, isTyping: false };
