@@ -7,17 +7,65 @@ import { CoverLetterForm } from '@/components/CoverLetterForm';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { useIsClient } from '@/hooks/useIsClient';
+import {
+  deleteFromHistory,
+  getHistory,
+  saveToHistory,
+  type CoverLetterHistoryEntry,
+  type CoverLetterTone,
+} from '@/lib/history';
 
 export default function Home() {
   const [coverLetter, setCoverLetter] = useState('');
   const [letterRunKey, setLetterRunKey] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [instantPreview, setInstantPreview] = useState(false);
+  const [loadedDraft, setLoadedDraft] =
+    useState<CoverLetterHistoryEntry | null>(null);
+  const [, forceHistoryRefresh] = useState(0);
+  const isClient = useIsClient();
+  const history = isClient ? getHistory() : [];
 
   function handleRegenerate() {
     (
       document.getElementById('cover-letter-form') as HTMLFormElement | null
     )?.requestSubmit();
+  }
+
+  function handleGenerate(
+    letter: string,
+    meta: {
+      company: string;
+      role: string;
+      tone: CoverLetterTone;
+      jobDescription: string;
+      requirements: string;
+      linkedin: string;
+      includeLinkedin: boolean;
+      email: string;
+      includeEmail: boolean;
+    },
+  ) {
+    setCoverLetter(letter);
+    setLetterRunKey((k) => k + 1);
+    setInstantPreview(false);
+    saveToHistory({ coverLetter: letter, ...meta });
+    forceHistoryRefresh((v) => v + 1);
+  }
+
+  function handleSelectHistory(entry: CoverLetterHistoryEntry) {
+    setCoverLetter(entry.coverLetter);
+    setLetterRunKey((k) => k + 1);
+    setInstantPreview(true);
+    setLoadedDraft(entry);
+    setMobileNavOpen(false);
+  }
+
+  function handleDeleteHistory(id: string) {
+    deleteFromHistory(id);
+    forceHistoryRefresh((v) => v + 1);
   }
 
   return (
@@ -58,6 +106,9 @@ export default function Home() {
             <Sidebar
               onDrawerClose={() => setMobileNavOpen(false)}
               className="min-h-0 flex-1"
+              historyEntries={history}
+              onSelectHistory={handleSelectHistory}
+              onDeleteHistory={handleDeleteHistory}
             />
           </div>
         </div>
@@ -65,15 +116,19 @@ export default function Home() {
 
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6 lg:flex-row lg:items-start">
         {/* Desktop sidebar */}
-        <div className="hidden shrink-0 lg:block lg:w-[240px]">
+        <div className="hidden shrink-0 lg:block lg:w-60">
           <div className="sticky top-6 max-h-[calc(100dvh-3rem)]">
-            <Sidebar />
+            <Sidebar
+              historyEntries={history}
+              onSelectHistory={handleSelectHistory}
+              onDeleteHistory={handleDeleteHistory}
+            />
           </div>
         </div>
 
         {/* Form + preview */}
         <div className="flex min-w-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-6 xl:gap-6">
-          <div className="border-border bg-card flex min-h-0 min-w-0 flex-1 flex-col rounded-xl border shadow-sm">
+          <div className="border-border bg-card flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm lg:h-[calc(100dvh-3rem)]">
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
               <div className="mb-5 sm:mb-6">
                 <h1 className="text-foreground text-base font-semibold sm:text-lg">
@@ -81,31 +136,28 @@ export default function Home() {
                 </h1>
                 <p className="text-muted-foreground mt-1 text-xs sm:text-sm">
                   Share the basics about the role and what matters to the
-                  employer. You&apos;ll get text you can refine — clear and
-                  human, not boilerplate.
+                  employer. You will get text you can refine, clear and human,
+                  not boilerplate.
                 </p>
               </div>
               <CoverLetterForm
-                onGenerate={(letter) => {
-                  setCoverLetter(letter);
-                  setLetterRunKey((k) => k + 1);
-                }}
+                onGenerate={handleGenerate}
                 onGenerating={setIsGenerating}
                 isGenerating={isGenerating}
+                draft={loadedDraft}
               />
             </div>
           </div>
 
-          <div className="border-border bg-card flex min-h-[min(50vh,28rem)] min-w-0 flex-1 flex-col rounded-xl border shadow-sm lg:min-h-[calc(100dvh-3rem)]">
-            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-              <PreviewPanel
-                coverLetter={coverLetter}
-                letterRunKey={letterRunKey}
-                isGenerating={isGenerating}
-                onRegenerate={handleRegenerate}
-                onCoverLetterChange={setCoverLetter}
-              />
-            </div>
+          <div className="border-border bg-card flex min-h-[min(50vh,28rem)] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border shadow-sm lg:h-[calc(100dvh-3rem)]">
+            <PreviewPanel
+              coverLetter={coverLetter}
+              letterRunKey={letterRunKey}
+              isGenerating={isGenerating}
+              onRegenerate={handleRegenerate}
+              onCoverLetterChange={setCoverLetter}
+              instant={instantPreview}
+            />
           </div>
         </div>
       </div>

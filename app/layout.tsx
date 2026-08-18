@@ -17,7 +17,7 @@ const title = {
   template: '%s · JobSeekAI',
 };
 const description =
-  'Draft a thoughtful cover letter for any application — clear wording, your own tone, no generic filler.';
+  'Draft a thoughtful cover letter for any application: clear wording, your own tone, no generic filler.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -27,9 +27,7 @@ export const metadata: Metadata = {
   keywords: ['cover letter', 'job application', 'resume', 'CV', 'careers'],
   authors: [{ name: 'JobSeekAI', url: siteUrl }],
   creator: 'JobSeekAI',
-  icons: {
-    icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-  },
+  manifest: '/site.webmanifest',
   openGraph: {
     type: 'website',
     locale: 'en_US',

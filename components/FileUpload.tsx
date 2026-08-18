@@ -2,18 +2,28 @@
 
 import { useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { FileText, UploadCloud, X } from 'lucide-react';
+import { FileText, RotateCcw, UploadCloud, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
   value: File | null;
   onChange: (file: File | null) => void;
   error?: string;
+  cachedResumeFileName?: string | null;
+  useCachedResume?: boolean;
+  onUseCachedResume?: (use: boolean) => void;
 }
 
 const MAX_SIZE = 2 * 1024 * 1024; // 2MB
 
-export function FileUpload({ value, onChange, error }: FileUploadProps) {
+export function FileUpload({
+  value,
+  onChange,
+  error,
+  cachedResumeFileName,
+  useCachedResume = false,
+  onUseCachedResume,
+}: FileUploadProps) {
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       if (acceptedFiles[0]) {
@@ -31,7 +41,13 @@ export function FileUpload({ value, onChange, error }: FileUploadProps) {
       maxFiles: 1,
     });
 
-  const rejectionError = fileRejections[0]?.errors[0]?.message;
+  const rejectionCode = fileRejections[0]?.errors[0]?.code;
+  const rejectionError =
+    rejectionCode === 'file-too-large'
+      ? 'File must be under 2 MB.'
+      : rejectionCode === 'file-invalid-type'
+        ? 'File must be a PDF.'
+        : fileRejections[0]?.errors[0]?.message;
   const displayError = error ?? rejectionError;
 
   function formatBytes(bytes: number) {
@@ -55,6 +71,28 @@ export function FileUpload({ value, onChange, error }: FileUploadProps) {
           onClick={() => onChange(null)}
           className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-1 transition-colors"
           aria-label="Remove file"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  if (useCachedResume && cachedResumeFileName) {
+    return (
+      <div className="border-border bg-muted/40 flex items-center gap-3 rounded-lg border px-4 py-3">
+        <FileText className="text-muted-foreground h-5 w-5 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground truncate text-sm font-medium">
+            {cachedResumeFileName}
+          </p>
+          <p className="text-muted-foreground text-xs">Using last resume</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onUseCachedResume?.(false)}
+          className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-1 transition-colors"
+          aria-label="Stop using last resume"
         >
           <X className="h-4 w-4" />
         </button>
@@ -90,6 +128,16 @@ export function FileUpload({ value, onChange, error }: FileUploadProps) {
           </p>
         </div>
       </div>
+      {cachedResumeFileName && (
+        <button
+          type="button"
+          onClick={() => onUseCachedResume?.(true)}
+          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors"
+        >
+          <RotateCcw className="h-3 w-3" />
+          Use last resume ({cachedResumeFileName})
+        </button>
+      )}
       {displayError && (
         <p className="text-destructive text-xs">{displayError}</p>
       )}

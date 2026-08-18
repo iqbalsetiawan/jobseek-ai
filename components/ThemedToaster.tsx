@@ -11,7 +11,7 @@ export function ThemedToaster() {
   return (
     <Toaster
       richColors
-      position="top-right"
+      position="bottom-right"
       theme={
         mounted && resolvedTheme === 'dark'
           ? 'dark'

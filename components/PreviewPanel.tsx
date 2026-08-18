@@ -16,6 +16,8 @@ interface PreviewPanelProps {
   isGenerating: boolean;
   onRegenerate: () => void;
   onCoverLetterChange: (value: string) => void;
+  /** Skip the typing animation, e.g. when loading a saved draft. */
+  instant?: boolean;
 }
 
 export function PreviewPanel({
@@ -24,12 +26,13 @@ export function PreviewPanel({
   isGenerating,
   onRegenerate,
   onCoverLetterChange,
+  instant = false,
 }: PreviewPanelProps) {
   const { displayedText, isTyping } = useTypingAnimation({
     text: coverLetter,
     runKey: letterRunKey,
     speed: 10,
-    enabled: !!coverLetter,
+    enabled: !!coverLetter && !instant,
   });
 
   async function handleCopy() {
@@ -44,9 +47,9 @@ export function PreviewPanel({
   const hasContent = !!coverLetter && !isGenerating;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
-      <div className="flex flex-col gap-3 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="flex flex-col gap-3 px-4 pt-5 pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-6 sm:pt-6">
         <div className="min-w-0">
           <h2 className="text-foreground text-base font-semibold">Draft</h2>
           <p className="text-muted-foreground mt-0.5 text-xs">
@@ -78,7 +81,7 @@ export function PreviewPanel({
       </div>
 
       {/* Content area */}
-      <div className="min-h-0 flex-1">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6 sm:pb-6">
         {isGenerating ? (
           <div className="space-y-3 pt-1">
             <Skeleton className="h-4 w-full" />
@@ -106,7 +109,7 @@ export function PreviewPanel({
                 readOnly={isTyping}
                 value={isTyping ? displayedText : coverLetter}
                 onChange={(e) => onCoverLetterChange(e.target.value)}
-                className="text-foreground min-h-[min(50vh,28rem)] w-full resize-y border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none focus-visible:ring-0 read-only:cursor-default"
+                className="text-foreground min-h-[min(50vh,28rem)] w-full resize-none border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none read-only:cursor-default focus-visible:ring-0"
               />
             </motion.div>
           </AnimatePresence>
@@ -115,8 +118,8 @@ export function PreviewPanel({
             <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
               <FileText className="text-muted-foreground h-5 w-5" />
             </div>
-            <p className="text-muted-foreground max-w-[220px] text-sm">
-              Generated text will show here when it&apos;s ready.
+            <p className="text-muted-foreground max-w-55 text-sm">
+              Generated text will show here when ready.
             </p>
           </div>
         )}

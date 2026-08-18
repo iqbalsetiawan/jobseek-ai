@@ -19,23 +19,23 @@ Next.js app that helps you draft **cover letters** tailored to a role and compan
 
 Create `.env.local` in the project root:
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `HUGGINGFACE_API_TOKEN` | Yes | Bearer token for `https://router.huggingface.co/v1/chat/completions` |
-| `HUGGINGFACE_MODEL` | No | Model id (default: `Qwen/Qwen2.5-7B-Instruct`) |
-| `NEXT_PUBLIC_SITE_URL` | No | Canonical site URL for metadata and OG (no trailing slash). Falls back to `VERCEL_URL` or `http://localhost:5173` |
+| Variable                | Required | Description                                                                                                       |
+| ----------------------- | -------- | ----------------------------------------------------------------------------------------------------------------- |
+| `HUGGINGFACE_API_TOKEN` | Yes      | Bearer token for `https://router.huggingface.co/v1/chat/completions`                                              |
+| `HUGGINGFACE_MODEL`     | No       | Model id (default: `meta-llama/Llama-3.1-8B-Instruct`)                                                            |
+| `NEXT_PUBLIC_SITE_URL`  | No       | Canonical site URL for metadata and OG (no trailing slash). Falls back to `VERCEL_URL` or `http://localhost:3000` |
 
 ## Scripts
 
 ```bash
-npm install
-npm run dev      # dev server on http://localhost:5173
-npm run build
-npm run start    # production server on port 5173
-npm run lint
-npm run lint:fix
-npm run prettier
-npm run prettier:fix
+pnpm install
+pnpm dev      # dev server on http://localhost:3000
+pnpm build
+pnpm start    # production server on port 3000
+pnpm lint
+pnpm lint:fix
+pnpm prettier
+pnpm prettier:fix
 ```
 
 ## Project structure (high level)

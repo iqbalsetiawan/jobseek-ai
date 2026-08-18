@@ -73,7 +73,7 @@ export default function OpenGraphImage() {
             'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
         }}
       >
-        Helpful drafts for job applications — natural tone, easy to edit.
+        Helpful drafts for job applications, natural tone, easy to edit.
       </p>
     </div>,
     { ...size },
