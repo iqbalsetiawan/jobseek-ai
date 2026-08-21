@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { usePrefersReducedMotion } from './usePrefersReducedMotion';
 
 interface UseTypingAnimationOptions {
   text: string;
@@ -21,14 +22,18 @@ export function useTypingAnimation({
   speed = 12,
   enabled = true,
 }: UseTypingAnimationOptions): UseTypingAnimationResult {
-  const staticMode = !text || !enabled;
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const staticMode = !text || !enabled || prefersReducedMotion;
   const [animText, setAnimText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const indexRef = useRef(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const genRef = useRef(0);
   const textRef = useRef(text);
-  textRef.current = text;
+
+  useEffect(() => {
+    textRef.current = text;
+  });
 
   useEffect(() => {
     if (staticMode) return;
