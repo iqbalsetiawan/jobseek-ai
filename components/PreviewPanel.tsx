@@ -10,7 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useTypingAnimation } from '@/hooks/useTypingAnimation';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import type { CoverLetterTone } from '@/lib/coverLetter';
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 interface PreviewPanelMeta {
   role: string;
@@ -57,6 +60,7 @@ export function PreviewPanel({
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null,
   );
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     setSelectedIndex(null);
@@ -161,105 +165,130 @@ export function PreviewPanel({
 
       {/* Content area */}
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6 sm:pb-6">
-        {isGenerating ? (
-          <div className="space-y-3 pt-1">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <div className="pt-2" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-2/3" />
-          </div>
-        ) : hasContent && isTyping ? (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={letterRunKey}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="relative"
-            >
-              <Textarea
-                aria-label="Cover letter draft"
-                readOnly
-                value={displayedText}
-                onChange={() => {}}
-                className="text-foreground min-h-[min(50vh,28rem)] w-full resize-none border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none read-only:cursor-default focus-visible:ring-0"
-              />
-            </motion.div>
-          </AnimatePresence>
-        ) : hasContent ? (
+        <AnimatePresence mode="wait">
           <motion.div
-            key={letterRunKey}
+            key={
+              isGenerating
+                ? 'skeleton'
+                : hasContent && isTyping
+                  ? `typing-${letterRunKey}`
+                  : hasContent
+                    ? `paragraphs-${letterRunKey}`
+                    : 'empty'
+            }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col gap-2"
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: EASE_OUT }}
           >
-            {paragraphs.map((paragraph, index) => {
-              const isSelected = selectedIndex === index;
-              const eligible = isRewritable(paragraph);
-              const isRegenerating = regeneratingIndex === index;
+            {isGenerating ? (
+              <div className="space-y-3 pt-1">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <div className="pt-2" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ) : hasContent && isTyping ? (
+              <div className="relative">
+                <Textarea
+                  aria-label="Cover letter draft"
+                  readOnly
+                  value={displayedText}
+                  onChange={() => {}}
+                  className="text-foreground min-h-[min(50vh,28rem)] w-full resize-none border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none read-only:cursor-default focus-visible:ring-0"
+                />
+              </div>
+            ) : hasContent ? (
+              <div className="flex flex-col gap-2">
+                {paragraphs.map((paragraph, index) => {
+                  const isSelected = selectedIndex === index;
+                  const eligible = isRewritable(paragraph);
+                  const isRegenerating = regeneratingIndex === index;
 
-              return (
-                <div
-                  key={index}
-                  className={cn(
-                    '-mx-3 rounded-lg border px-3 py-2 transition-colors',
-                    isSelected
-                      ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40'
-                      : 'hover:bg-muted/40 border-transparent',
-                  )}
-                >
-                  <div className="relative">
-                    <Textarea
-                      aria-label={`Paragraph ${index + 1}`}
-                      value={paragraph}
-                      onFocus={() => setSelectedIndex(index)}
-                      onClick={() => setSelectedIndex(index)}
-                      onChange={(e) =>
-                        handleParagraphChange(paragraphs, index, e.target.value)
-                      }
-                      className="text-foreground min-h-0 w-full resize-none border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent"
-                    />
-                    {isSelected && eligible && meta && (
-                      <div className="absolute -top-3 right-0 z-10">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          disabled={isRegenerating}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleRewrite(paragraphs, index)}
-                          className="h-6 gap-1 rounded-full px-2.5 text-[11px] shadow-sm"
-                        >
-                          {isRegenerating ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Wand2 className="h-3 w-3" />
+                  return (
+                    <div
+                      key={index}
+                      className={cn(
+                        '-mx-3 rounded-lg border px-3 py-2 transition-colors',
+                        isSelected
+                          ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/40'
+                          : 'hover:bg-muted/40 border-transparent',
+                      )}
+                    >
+                      <div className="relative">
+                        <Textarea
+                          aria-label={`Paragraph ${index + 1}`}
+                          value={paragraph}
+                          onFocus={() => setSelectedIndex(index)}
+                          onClick={() => setSelectedIndex(index)}
+                          onChange={(e) =>
+                            handleParagraphChange(
+                              paragraphs,
+                              index,
+                              e.target.value,
+                            )
+                          }
+                          className="text-foreground min-h-0 w-full resize-none border-0 bg-transparent px-0 py-0 font-sans text-sm leading-relaxed shadow-none focus-visible:ring-0 dark:bg-transparent"
+                        />
+                        <AnimatePresence>
+                          {isSelected && eligible && meta && (
+                            <motion.div
+                              initial={{
+                                opacity: 0,
+                                scale: prefersReducedMotion ? 1 : 0.9,
+                              }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{
+                                opacity: 0,
+                                scale: prefersReducedMotion ? 1 : 0.9,
+                              }}
+                              transition={{ duration: 0.15, ease: EASE_OUT }}
+                              style={{ transformOrigin: 'bottom right' }}
+                              className="absolute -top-3 right-0 z-10"
+                            >
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                disabled={isRegenerating}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => handleRewrite(paragraphs, index)}
+                                className="h-6 gap-1 rounded-full px-2.5 text-[11px] shadow-sm"
+                              >
+                                {isRegenerating ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Wand2 className="h-3 w-3" />
+                                )}
+                                {isRegenerating ? 'Rewriting' : 'Rewrite'}
+                              </Button>
+                            </motion.div>
                           )}
-                          {isRegenerating ? 'Rewriting' : 'Rewrite'}
-                        </Button>
+                        </AnimatePresence>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-center">
+                <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
+                  <FileText className="text-muted-foreground h-5 w-5" />
                 </div>
-              );
-            })}
+                <p className="text-muted-foreground max-w-55 text-sm">
+                  Generated text will show here when ready.
+                </p>
+              </div>
+            )}
           </motion.div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 py-12 text-center">
-            <div className="bg-muted flex h-12 w-12 items-center justify-center rounded-full">
-              <FileText className="text-muted-foreground h-5 w-5" />
-            </div>
-            <p className="text-muted-foreground max-w-55 text-sm">
-              Generated text will show here when ready.
-            </p>
-          </div>
-        )}
+        </AnimatePresence>
       </div>
     </div>
   );

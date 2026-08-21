@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Sidebar } from '@/components/Sidebar';
 import { CoverLetterForm } from '@/components/CoverLetterForm';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useIsClient } from '@/hooks/useIsClient';
+import { usePrefersReducedMotion } from '@/hooks/usePrefersReducedMotion';
 import {
   deleteFromHistory,
   getHistory,
@@ -15,6 +17,9 @@ import {
   type CoverLetterHistoryEntry,
   type CoverLetterTone,
 } from '@/lib/history';
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+const EASE_DRAWER = [0.32, 0.72, 0, 1] as const;
 
 export default function Home() {
   const [coverLetter, setCoverLetter] = useState('');
@@ -34,6 +39,7 @@ export default function Home() {
   const [, forceHistoryRefresh] = useState(0);
   const isClient = useIsClient();
   const history = isClient ? getHistory() : [];
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   function handleRegenerate() {
     (
@@ -110,30 +116,62 @@ export default function Home() {
       </header>
 
       {/* Mobile nav drawer — narrow rail so main content stays mostly visible */}
-      {mobileNavOpen ? (
-        <div
-          className="fixed inset-0 z-50 lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Navigation menu"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 z-0 cursor-default bg-black/50 dark:bg-black/60"
-            aria-label="Close menu"
-            onClick={() => setMobileNavOpen(false)}
-          />
-          <div className="border-border bg-background absolute inset-y-0 left-0 z-10 flex h-full w-[min(12.5rem,70vw)] flex-col border-r shadow-xl">
-            <Sidebar
-              onDrawerClose={() => setMobileNavOpen(false)}
-              className="min-h-0 flex-1"
-              historyEntries={history}
-              onSelectHistory={handleSelectHistory}
-              onDeleteHistory={handleDeleteHistory}
+      <AnimatePresence>
+        {mobileNavOpen && (
+          <div
+            key="mobile-nav-drawer"
+            className="fixed inset-0 z-50 lg:hidden"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation menu"
+          >
+            <motion.button
+              type="button"
+              className="absolute inset-0 z-0 cursor-default bg-black/50 dark:bg-black/60"
+              aria-label="Close menu"
+              onClick={() => setMobileNavOpen(false)}
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: 1,
+                transition: { duration: 0.2, ease: EASE_OUT },
+              }}
+              exit={{
+                opacity: 0,
+                transition: { duration: 0.2, ease: EASE_OUT },
+              }}
             />
+            <motion.div
+              className="border-border bg-background absolute inset-y-0 left-0 z-10 flex h-full w-[min(12.5rem,70vw)] flex-col border-r shadow-xl"
+              initial={{
+                opacity: prefersReducedMotion ? 0 : 1,
+                transform: prefersReducedMotion
+                  ? 'translateX(0%)'
+                  : 'translateX(-100%)',
+              }}
+              animate={{
+                opacity: 1,
+                transform: 'translateX(0%)',
+                transition: { duration: 0.3, ease: EASE_DRAWER },
+              }}
+              exit={{
+                opacity: prefersReducedMotion ? 0 : 1,
+                transform: prefersReducedMotion
+                  ? 'translateX(0%)'
+                  : 'translateX(-100%)',
+                transition: { duration: 0.2, ease: EASE_DRAWER },
+              }}
+            >
+              <Sidebar
+                onDrawerClose={() => setMobileNavOpen(false)}
+                className="min-h-0 flex-1"
+                historyEntries={history}
+                onSelectHistory={handleSelectHistory}
+                onDeleteHistory={handleDeleteHistory}
+              />
+            </motion.div>
           </div>
-        </div>
-      ) : null}
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6 lg:flex-row lg:items-start">
         {/* Desktop sidebar */}
