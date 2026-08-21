@@ -6,9 +6,10 @@ Next.js app that helps you draft **cover letters** tailored to a role and compan
 
 - Form for role, company, job description, and requirements; optional CV PDF parsing on the server (`pdf-parse`)
 - Tone presets: Professional, Casual, Confident
-- Live preview panel with copy/regenerate
+- Live preview panel with copy/regenerate and per-paragraph rewrite
+- Draft history and resume caching (local storage)
 - Dark/light theme (`next-themes`), responsive layout with sidebar and mobile drawer
-- UI built with React 19, Tailwind CSS 4, and shadcn-style components (`@base-ui/react`)
+- UI built with React 19, Tailwind CSS 4, shadcn-style components (`@base-ui/react`), and Framer Motion
 
 ## Requirements
 
@@ -36,13 +37,17 @@ pnpm lint
 pnpm lint:fix
 pnpm prettier
 pnpm prettier:fix
+pnpm test
 ```
 
 ## Project structure (high level)
 
 - `app/page.tsx` — main cover letter flow (form + preview)
 - `app/api/generate-cover-letter/route.ts` — parses PDF, builds prompts, calls Hugging Face
+- `app/api/regenerate-paragraph/route.ts` — rewrites a single paragraph of an existing letter
 - `components/` — UI (form, upload, preview, sidebar, theme)
+- `lib/` — prompt logic, rate limiting, draft history/resume caching
+- `hooks/` — typing animation, reduced-motion, hydration-safe client detection
 
 ## Deploy
 
@@ -50,4 +55,4 @@ The app runs on Vercel like any Next.js app. Set `HUGGINGFACE_API_TOKEN` (and op
 
 ## Stack
 
-Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, ESLint 9, Prettier.
+Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Framer Motion, ESLint 9, Prettier, Vitest.
