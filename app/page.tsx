@@ -24,6 +24,13 @@ export default function Home() {
   const [instantPreview, setInstantPreview] = useState(false);
   const [loadedDraft, setLoadedDraft] =
     useState<CoverLetterHistoryEntry | null>(null);
+  const [currentMeta, setCurrentMeta] = useState<{
+    role: string;
+    company: string;
+    jobDescription: string;
+    requirements: string;
+    tone: CoverLetterTone;
+  } | null>(null);
   const [, forceHistoryRefresh] = useState(0);
   const isClient = useIsClient();
   const history = isClient ? getHistory() : [];
@@ -51,6 +58,13 @@ export default function Home() {
     setCoverLetter(letter);
     setLetterRunKey((k) => k + 1);
     setInstantPreview(false);
+    setCurrentMeta({
+      role: meta.role,
+      company: meta.company,
+      jobDescription: meta.jobDescription,
+      requirements: meta.requirements,
+      tone: meta.tone,
+    });
     saveToHistory({ coverLetter: letter, ...meta });
     forceHistoryRefresh((v) => v + 1);
   }
@@ -60,6 +74,13 @@ export default function Home() {
     setLetterRunKey((k) => k + 1);
     setInstantPreview(true);
     setLoadedDraft(entry);
+    setCurrentMeta({
+      role: entry.role,
+      company: entry.company,
+      jobDescription: entry.jobDescription,
+      requirements: entry.requirements,
+      tone: entry.tone,
+    });
     setMobileNavOpen(false);
   }
 
@@ -157,6 +178,7 @@ export default function Home() {
               onRegenerate={handleRegenerate}
               onCoverLetterChange={setCoverLetter}
               instant={instantPreview}
+              meta={currentMeta}
             />
           </div>
         </div>

@@ -1,99 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pdfParse from 'pdf-parse';
+import { isRateLimited } from '@/lib/rateLimit';
+import {
+  BANNED_PHRASES,
+  buildContactTokens,
+  cleanText,
+  getToneGuide,
+  mergeContactSentence,
+  normalizeHyphenBuzzwords,
+} from '@/lib/coverLetter';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const requestLog = new Map<string, number[]>();
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const timestamps = (requestLog.get(ip) ?? []).filter(
-    (t) => now - t < RATE_LIMIT_WINDOW_MS,
-  );
-  if (timestamps.length >= RATE_LIMIT_MAX) {
-    requestLog.set(ip, timestamps);
-    return true;
-  }
-  timestamps.push(now);
-  requestLog.set(ip, timestamps);
-  return false;
-}
-
-const BANNED_PHRASES = [
-  'I am writing to express my interest',
-  'I am highly motivated',
-  'I am passionate about',
-  'I would be a great fit',
-  'I am excited to apply',
-  'Please find attached',
-  'I believe I have the skills',
-  'To whom it may concern',
-  'I am eager to contribute',
-  'I have always been passionate',
-  'I am a hard worker',
-  'I am a team player',
-];
-
-function cleanText(text: string): string {
-  return text
-    .replace(/\s+/g, ' ')
-    .replace(/[^\x20-\x7E\n]/g, ' ')
-    .trim()
-    .slice(0, 4000);
-}
-
-/** Turn buzzword-style hyphen stacks into plain words (e.g. real-time → real time). */
-function normalizeHyphenBuzzwords(letter: string): string {
-  let s = letter.replace(/\u2013|\u2014/g, ' ');
-  s = s.replace(/--+/g, ' ');
-  s = s.replace(/\s+-\s+/g, ', ');
-  let prev = '';
-  while (s !== prev) {
-    prev = s;
-    s = s.replace(/\b([A-Za-z]+)-([A-Za-z]+)\b/g, '$1 $2');
-  }
-  return s
-    .split('\n')
-    .map((line) => line.replace(/ {2,}/g, ' ').trimEnd())
-    .join('\n');
-}
-
-/** Some models still place the contact sentence in its own paragraph despite instructions; fold it back into the previous paragraph. */
-function mergeContactSentence(
-  letter: string,
-  hasLinkedin: boolean,
-  hasEmail: boolean,
-): string {
-  if (!hasLinkedin && !hasEmail) return letter;
-
-  const tokenPattern = /\[YOUR LINKEDIN\]|\[YOUR EMAIL\]/;
-  const paragraphs = letter.split(/\n\s*\n/);
-
-  for (let i = 1; i < paragraphs.length - 1; i++) {
-    const paragraph = paragraphs[i];
-    if (
-      tokenPattern.test(paragraph) &&
-      paragraph.trim().split(/\s+/).length < 30
-    ) {
-      paragraphs[i - 1] = `${paragraphs[i - 1].trimEnd()} ${paragraph.trim()}`;
-      paragraphs.splice(i, 1);
-      break;
-    }
-  }
-
-  return paragraphs.join('\n\n');
-}
-
-function buildContactTokens(
-  hasLinkedin: boolean,
-  hasEmail: boolean,
-): string | null {
-  if (hasLinkedin && hasEmail) return '[YOUR LINKEDIN] and [YOUR EMAIL]';
-  if (hasLinkedin) return '[YOUR LINKEDIN]';
-  if (hasEmail) return '[YOUR EMAIL]';
-  return null;
-}
 
 function buildMessages(params: {
   cvText: string;
@@ -110,15 +29,7 @@ function buildMessages(params: {
   const hasEmail = !!params.email.trim();
   const contactTokens = buildContactTokens(hasLinkedin, hasEmail);
 
-  const toneGuide =
-    {
-      Professional:
-        'polished and structured, warm but formal, confident without sounding stiff',
-      Casual:
-        'conversational and approachable, relaxed cadence, warm and direct, still professional',
-      Confident:
-        'assertive and forward-looking, strong active verbs, direct claims backed by evidence from the CV, no hedging',
-    }[tone] ?? 'professional and human';
+  const toneGuide = getToneGuide(tone);
 
   const bannedList = BANNED_PHRASES.map((p) => `- "${p}"`).join('\n');
 
@@ -190,7 +101,7 @@ export async function POST(request: NextRequest) {
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
       'unknown';
-    if (isRateLimited(ip)) {
+    if (isRateLimited(`generate:${ip}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS)) {
       return NextResponse.json(
         { error: 'Too many requests. Please wait a minute and try again.' },
         { status: 429 },
